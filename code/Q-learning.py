@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Sep 12 12:49:27 2018
-
 @author: GanJinZERO
 """
 
@@ -87,4 +86,4 @@ while epoch_count < 1000:
     
 print(epoch_count)
 print(Q_delta)
-draw_answer(0, 1)            
+draw_answer(0, 1)
