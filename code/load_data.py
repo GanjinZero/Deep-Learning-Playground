@@ -22,4 +22,4 @@ def load_data_anime_face(nb=51222):
         if counter == nb:
             break
     
-    return train_set
+    return np.reshape(train_set, [-1, 96, 96, 3])
