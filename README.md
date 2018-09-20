@@ -8,6 +8,6 @@ VAE
 
 # Todo List
 GAN  
-InfoGAN
-Language Model
-Seq2Seq Translate Model
+InfoGAN  
+Language Model  
+Seq2Seq Translate Model  
