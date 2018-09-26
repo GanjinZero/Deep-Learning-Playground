@@ -6,7 +6,7 @@ Created on Wed Sep 19 11:18:43 2018
 """
 
 import os
-from PIL import Image
+import matplotlib.image as mpimg
 import numpy as np
 
 def load_data_anime_face(nb=51222):
@@ -15,8 +15,7 @@ def load_data_anime_face(nb=51222):
     counter = 0
 
     for picture_path in os.listdir(file_path):
-        im = Image.open(file_path + picture_path)
-        im_array = np.array(im)
+        im_array = mpimg.imread(file_path + picture_path)
         train_set.append(im_array)
         counter += 1
         if counter == nb:

@@ -10,8 +10,12 @@ from load_data import load_data_anime_face
 from keras.layers import Dense, Input, Reshape, Conv2DTranspose
 from keras.layers import Conv2D, Flatten, Lambda
 from keras.models import Model
+from keras.optimizers import Adam
 from keras import backend as K
 from keras.losses import mse
+import matplotlib.pyplot as pyplot
+import numpy as np
+from loss_history import LossHistory
 
 
 def sample(args):
@@ -22,14 +26,22 @@ def sample(args):
     epsilon = K.random_normal(shape=(batch, dim))
     return z_mu + K.exp(0.5 * z_log_sigma2) * epsilon
 
+def plot(picture):
+    pic = picture * 255
+    pic = picture.reshape((96, 96, 3))
+    pyplot.imshow(pic)
+    pyplot.axis('off')
+    pyplot.show()
+
 class Vae:
-    def __init__(self, pic_train_nb=1000, pic_test_nb=200):
+    def __init__(self, pic_train_nb=5000, pic_test_nb=100):
         self.train_data = load_data_anime_face(pic_train_nb) / 255
         self.test_data = load_data_anime_face(pic_test_nb) / 255
         self.input_shape = (96, 96, 3)
-        self.batch_size = 64
-        self.latent_dim = 10
-        self.epochs = 100
+        self.batch_size = 512
+        self.latent_dim = 50
+        self.epochs = 200
+        self.learning_rate = 0.01
         
     def build_model(self):
         # Encoder
@@ -94,27 +106,42 @@ class Vae:
         self.kl_loss *= -0.5
         self.total_loss = K.mean(self.output_loss + self.kl_loss)
         self.vae_model.add_loss(self.total_loss)
-        self.vae_model.compile(optimizer='adam')
+        self.adam = Adam(lr=self.learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+        self.vae_model.compile(optimizer=self.adam)
         print(self.vae_model.summary())
+        self.history = LossHistory()
         self.vae_model.fit(self.train_data, 
                            epochs=self.epochs,
                            batch_size=self.batch_size,
-                           validation_data=(self.test_data, None))
+                           validation_data=(self.test_data, None),
+                           callbacks=[self.history])
         
     def plot_given_z(self, z):
-        return 0
+        pict = self.decoder.predict(z)
+        plot(pict)
         
     def plot_random_result(self):
-        return 0
+        z = np.array([np.random.normal(0, 1, self.latent_dim)])
+        self.plot_given_z(z)
     
-    def plot_train(self, nb=1):
-        return 0
+    def plot_random_train(self):
+        train_size = np.shape(self.train_data)[0]
+        train_pic_id = np.random.randint(0, train_size)
+        train_pic = np.array([self.train_data[train_pic_id]])
+        plot(train_pic)
+        predict_pic = self.vae_model.predict(train_pic)
+        plot(predict_pic)
     
-    def plot_test(self, nb=1):
-        return 0
+    def plot_random_test(self):
+        test_size = np.shape(self.test_data)[0]
+        test_pic_id = np.random.randint(0, test_size)
+        test_pic = np.array([self.test_data[test_pic_id]])
+        plot(test_pic)
+        predict_pic = self.vae_model.predict(test_pic)
+        plot(predict_pic)
     
     def plot_loss(self):
-        return 0
+        self.history.loss_plot('epoch')
     
     def save_model(self):
         return 0
@@ -126,3 +153,7 @@ if __name__ == "__main__":
     vae = Vae()
     vae.build_model()
     vae.train_model()
+    # vae.plot_given_z(np.array([[0,0,0,0,0]]))
+    # vae.plot_random_result()
+    vae.plot_random_train()
+    vae.plot_random_test()
