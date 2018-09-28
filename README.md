@@ -11,3 +11,5 @@ GAN
 InfoGAN  
 Language Model  
 Seq2Seq Translate Model  
+XGBoost  
+LightGBM  
