@@ -2,14 +2,16 @@
 A playground for Deep Learning
 
 # Project List
-Q-Learning  
-Deep Q-Learning   
-VAE
+- Q-Learning
+- Deep Q-Learning
+- VAE
 
 # Todo List
-GAN  
-InfoGAN  
-Language Model  
-Seq2Seq Translate Model  
-XGBoost  
-LightGBM  
+- GAN  
+- InfoGAN  
+- Language Model  
+- Seq2Seq Translate Model (With attention)
+- ELMo
+- Bert
+- XGBoost
+- LightGBM
