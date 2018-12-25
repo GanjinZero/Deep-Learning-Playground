@@ -11,7 +11,7 @@ import numpy as np
 
 def load_data_anime_face(nb=51222):
     train_set = []
-    file_path = "../data/anime_face/"
+    file_path = "../../data/anime_face/"
     counter = 0
 
     for picture_path in os.listdir(file_path):
