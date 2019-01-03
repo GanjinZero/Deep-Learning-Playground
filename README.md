@@ -5,11 +5,11 @@ A playground for Deep Learning
 - Q-Learning
 - Deep Q-Learning
 - VAE
+- Language Model  
 
 # Todo List
 - GAN  
 - InfoGAN  
-- Language Model  
 - Seq2Seq Translate Model (With attention)
 - ELMo
 - Bert
