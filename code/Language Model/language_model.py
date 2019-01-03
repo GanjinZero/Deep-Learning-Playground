@@ -9,8 +9,6 @@ from utils import clear_dictionary, mecab_to_text, generate_train
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 import pickle
-import tensorflow as tf
-import keras.backend as K
 from keras.layers import Dense, Input, LSTM, Embedding, Dropout, Activation, CuDNNGRU, Conv1D
 from keras.layers import Bidirectional, GlobalMaxPool1D, CuDNNLSTM
 from keras.layers import Lambda, Add
@@ -24,14 +22,14 @@ import random
 
 embeddings_index = load_embedding()
 
-use_text_length = 10000
+use_text_length = 20000
 japanese_text = load_text(use_text_length)
 split_japanese_text = mecab_to_text(japanese_text)
-dictionary = make_word_dictionary(split_japanese_text, lower_bound=50)
+dictionary = make_word_dictionary(split_japanese_text, lower_bound=10)
 dictionary = clear_dictionary(dictionary, embeddings_index)
 
-all_embs = np.stack(embeddings_index.values())
-emb_mean, emb_std = all_embs.mean(), all_embs.std()
+#all_embs = np.stack(embeddings_index.values())
+#emb_mean, emb_std = all_embs.mean(), all_embs.std()
 
 ## Tokenize the sentences
 tokenizer = Tokenizer(char_level=False)
@@ -47,17 +45,21 @@ word_index = tokenizer.word_index
 nb_words = len(word_index) + 2
 start_index = 0
 end_index = len(word_index) + 1
-embedding_matrix = np.random.normal(emb_mean, emb_std, (nb_words, 300))
+embedding_matrix = np.zeros((nb_words, 300))
 for word, i in word_index.items():
     embedding_vector = embeddings_index.get(word)
     if embedding_vector is not None: embedding_matrix[i] = embedding_vector
+    
+emb_mean, emb_std = embedding_matrix.mean(), embedding_matrix.std()
+embedding_matrix[0] = np.random.normal(emb_mean, emb_std, (300))
+embedding_matrix[-1] = np.random.normal(emb_mean, emb_std, (300))
 # del embeddings_index
     
 window = 5
 train_x, train_y = generate_train(window, end_index, japanese_text_seq)
 
-train_y = np_utils.to_categorical(train_y)
-x_train, x_test, y_train, y_test = train_test_split(train_x, train_y, test_size=0.2)
+train_y_cat = np_utils.to_categorical(train_y)
+x_train, x_test, y_train, y_test = train_test_split(train_x, train_y_cat, test_size=0.2)
 x_train = np.asarray(x_train)
 x_test = np.asarray(x_test)
 y_train = np.asarray(y_train)
@@ -78,7 +80,7 @@ opt = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, de
 model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 history = LossHistory()
 
-epoch_nb = 1
+epoch_nb = 80 # 40 is enough
 batch = 64
 
 model.fit(x_train, y_train, batch_size=batch, epochs=epoch_nb, verbose=1,
@@ -88,6 +90,7 @@ reverse_index = {v: k for k, v in word_index.items()}
 reverse_index[nb_words - 1] = ""
 reverse_index[0] = ""
 word_ind = np.linspace(0, nb_words - 1, nb_words)
+
 def predict_random_sentence(new=[0] * (window - 1)):
     sentence = reverse_index[new[0]] + reverse_index[new[1]] + reverse_index[new[2]] + reverse_index[new[3]]
     while new[-1] != end_index:
