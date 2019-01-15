@@ -11,6 +11,7 @@ A playground for Deep Learning
 - GAN  
 - InfoGAN  
 - Seq2Seq Translate Model (With attention)
+- Seq2Seq Haiku Generator
 - ELMo
 - Bert
 - XGBoost
