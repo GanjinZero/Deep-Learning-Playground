@@ -2,7 +2,7 @@ import random
 import os
 import keras
 import time
-from keras.layeres import Input, Dense
+from keras.layers import Input, Dense
 from keras.models import Model
 from keras.utils import multi_gpu_model
 
@@ -23,8 +23,8 @@ def generate_data(n):
 
 
 def set_model():
-    inp = Input(shape=())
-    x = Dense(1, activation="relu")
+    inp = Input(shape=(1,))
+    x = Dense(1, activation="linear")(inp)
     model = Model(inputs=inp, outputs=x)
     return model
 
@@ -43,14 +43,14 @@ def train_model(model, x, y):
     opt = keras.optimizers.Adam(lr=0.01, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
     model.compile(loss='mean_squared_error', optimizer=opt)
     print(model.summary())
-    model.fit(x, y, batch_size=32, epochs=100)
+    model.fit(x, y, batch_size=32, epochs=10)
     end = time.time()
     print("Used time %s"%round((end - start), 2))
 
 
 if __name__ == "__main__":
-    x, y = generate_data(1000)
-    train_model(set_model(), x, y)
+    x, y = generate_data(100000)
+    # train_model(set_model(), x, y)
 
     gpu_state()
     train_model(double_gpu_model(), x, y)
