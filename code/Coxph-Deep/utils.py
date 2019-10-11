@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from CoxphModel import TClassDataLoader
 
 
 def unique_set(lifetime):
@@ -48,6 +49,7 @@ def c_index(censor, lifetime, score1):
     n_uncensor_pair = 0
     score_uncensor = 0
     score = 0
+    score1 = score1.numpy().reshape(-1)
     for i in range(len(lifetime)):
         for j in range(i+1,len(lifetime)):
             if(censor[i] == 1 and censor[j] == 1):
@@ -76,27 +78,18 @@ def c_index(censor, lifetime, score1):
     #print(score_uncensor/n_uncensor_pair)
     return score / n_orderable
 
-def evaluate_C_index():
-    print('Evaluate c index ...')
+def evaluate_C_index(model, x, censor, lifetime):
     model.train(False)
-    tloader = TClassDataLoader(x_patient_train, x_treatment_train, censor_train, y_train, batch_size = len(x_patient_train))
-    the_score1 = torch.zeros(len(x_patient_train), 1)
-    the_censor = torch.zeros(len(x_patient_train))
-    the_lifetime = torch.zeros(len(x_patient_train))
-    for step,(x_patient, x_treatment, censor, lifetime) in enumerate(tloader):
-        score1_train = model(x_patient, x_treatment)
-        the_score1[step*len(x_patient_train):((step+1)*len(x_patient_train)),0] = score1_train.squeeze().data.detach()
-        the_censor[step*len(x_patient_train):((step+1)*len(x_patient_train))] = censor.squeeze().data.detach()
-        the_lifetime[step*len(x_patient_train):((step+1)*len(x_patient_train))] = lifetime.squeeze().data.detach()
-            
-        c_index_train = c_index(the_censor, the_lifetime, the_score1)
-        print('Concordance index for training data: {:.4f}'.format(c_index_train))
+    tloader = TClassDataLoader(x, censor, lifetime, batch_size = len(x))
+    for step, (x, censor, lifetime) in enumerate(tloader):
+        s = model(x).squeeze().data.detach()
+        c = censor.squeeze().data.detach()
+        l = lifetime.squeeze().data.detach()
+        print("Score", s[0:10])
+        print("Censor", c[0:10])
+        print("Lifetime", l[0:10])
+        c_i = c_index(c, l, s)
     
-    tloader = TClassDataLoader(x_patient_test, x_treatment_test, censor_test, y_test, batch_size = len(x_patient_test))
-    for step,(x_patient, x_treatment, censor, lifetime) in enumerate(tloader):
-        score1_test = model(x_patient, x_treatment)
-        c_index_test = c_index(censor.squeeze(), lifetime.squeeze(), score1_test.squeeze())
-        print('Concordance index for test data: {:.4f}'.format(c_index_test))
     model.train(True)
-    print('Evaluate c index finish.')
+    return c_i
 

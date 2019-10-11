@@ -1,62 +1,34 @@
+import math
+import numpy as np
 import torch
 import torch.nn as nn
-from torchSummaryX import summary
+from torchsummaryX import summary
+from generate_fake_data import generate_01_data
 
 
 class Coxph_model(nn.Module):
-    def __init__(self, embedding_size = 1, out_size = 16):
+    def __init__(self, input_size_0, input_size_1, embedding_size=5, out_size=16):
         super(Coxph_model, self).__init__()
-        self.embedding_1 = nn.Embedding(nb_patient + 1, embedding_size)
-        self.embedding_2 = nn.Embedding(nb_treatment + 1, embedding_size)
-        print('init done')
-        # RELU
-        #self.activate = nn.Sigmoid()
-        #self.activate = nn.ReLU()
-        #self.linear = nn.Linear(embedding_size, out_size)
-        #self.fc_layer2 = nn.Linear(1, out_size)
-        #self.beta = nn.Parameter(torch.Tensor(out_size, 1))
+        self.embedding = nn.Embedding(input_size_0 + 1, embedding_size)
+        self.activate = nn.ReLU()
+        self.linear_1 = nn.Linear(input_size_1 * embedding_size, out_size)
+        self.linear_2 = nn.Linear(out_size, 1)
         #self.beta = nn.Parameter(torch.Tensor(out_size + 1, 1))
         #self.beta.data.uniform_(-1/math.sqrt(out_size + 1), 1/math.sqrt(out_size + 1))
-        #print(self.linear.bias)
-        #print(self.embedding_1.weight)
-        
-    def score_1(self, x):
-        #score_1 = torch.exp(x.mm(self.beta))
-        #print(score_1.shape)
-        score_1 = torch.exp(x)
-        return score_1
+      
     
     """
     def score_2(self, score1):
         return self.sigmoid(self.fc_layer2(score1))
     """
     
-    def forward(self, batch_1, batch_2):
-        batch_1_h = self.embedding_1(batch_1)
-        batch_2_h = self.embedding_2(batch_2)
-        h = torch.cat((batch_1_h, batch_2_h), 1)
-        s = torch.sum(h, 1)
-        """
-        new_x = self.activate(self.linear(s))
-        new_x = torch.cat((new_x, torch.ones((new_x.shape[0], 1))), 1)
-        score1 = self.score_1(new_x)
-        """
-        #score2 = self.score_2(score1)
-        score1 = torch.exp(s)
+    def forward(self, batch_1):
+        s = self.embedding(batch_1)
+        h = s.view(s.shape[0], -1)
+        new_x = self.activate(self.linear_1(h))
+        score1 = torch.exp(self.linear_2(new_x))
         return score1#, score2
 
-    
-#test_model = Coxph_model()
-#print(test_model(torch.zeros((3, 47), dtype=torch.long), torch.zeros((3, 25), dtype=torch.long)).shape)
-
-"""
-from torchsummaryX import summary
-print(4)
-summary(Coxph_model(),
-        torch.zeros((3, 47), dtype=torch.long),
-        torch.zeros((3, 25), dtype=torch.long))
-print(5)
-"""
 
 class TClassDataLoader(object):
     def __init__(self, x, censored, time, batch_size=2):
@@ -98,14 +70,16 @@ class TClassDataLoader(object):
 
         # dump padding everywhere, and place seqs on the left.
         # NOTE: you only need a tensor as big as your longest sequence
+
+        # NOTE: Use long() to make sure x input -> embedding
         seq_tensor_x = torch.zeros((len(batch_x), len(batch_x[0]))).long()
         seq_tensor_censored = torch.zeros(len(batch_censored),1).long()
-        seq_tensor_y = torch.zeros(len(batch_y), 1).long()
+        seq_tensor_y = torch.zeros(len(batch_y), 1)
         
         for idx, (seq_x, seq_censored, seq_y) in enumerate(zip(batch_x, batch_censored, batch_y)):
-            seq_tensor_x[idx] = torch.tensor(seq_x).long()
-            seq_tensor_censored[idx] = torch.tensor(seq_censored).long()
-            seq_tensor_y[idx] = torch.tensor(seq_y).long()
+            seq_tensor_x[idx] = torch.tensor(seq_x)
+            seq_tensor_censored[idx] = torch.tensor(seq_censored)
+            seq_tensor_y[idx] = torch.tensor(seq_y)
         
         return seq_tensor_x, seq_tensor_censored, seq_tensor_y
 
@@ -121,10 +95,20 @@ class TClassDataLoader(object):
 
     def show_samples(self, n=10):
         for i in range(n):
-            print(self.samples_x[i], self.censored_list[i], self.y_list[i])
+            print(self.samples[i], self.censored_list[i], self.y_list[i])
 
     def report(self):
-        print('# samples: {}'.format(len(self.samples_x)))
+        print('# samples: {}'.format(len(self.samples)))
         print('# batches: {} (batch_size = {})'.format(self.n_batches, self.batch_size))
-        self.show_samples(n=3)
+        self.show_samples(n=5)
+
+if __name__ == "__main__":
+    # See Model Architeture
+    summary(Coxph_model(input_size_0=100, input_size_1=20), torch.zeros(100, 20).long())
+
+    # Test TClassDataLoader
+    x, y = generate_01_data(500, 100, 10)
+    censor = np.where(np.array(y)==1, 1, 0)
+    tloader = TClassDataLoader(x, censor, y, batch_size=len(x))
+    tloader.report()
 
